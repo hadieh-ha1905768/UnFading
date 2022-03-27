@@ -388,7 +388,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 963194225}
   m_LocalRotation: {x: 0.2588191, y: 0, z: 0, w: 0.9659258}
-  m_LocalPosition: {x: 0, y: 2.32, z: -7.54}
+  m_LocalPosition: {x: 0, y: 1.91, z: -5.95}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
@@ -1015,6 +1015,8 @@ GameObject:
   - component: {fileID: 543450652873261590}
   - component: {fileID: 5866666021041657964}
   - component: {fileID: 919132148949538990}
+  - component: {fileID: 919132148949538991}
+  - component: {fileID: 919132148949538992}
   - component: {fileID: 919132148949538989}
   m_Layer: 0
   m_Name: ang_girl
@@ -1053,15 +1055,50 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b2b20153366a0cd4a8a04394bd003d07, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  playerMovement: {fileID: 919132148949538991}
+  playerAnimation: {fileID: 919132148949538992}
+--- !u!114 &919132148949538991
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 919132148949538988}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f30c419790ebf0847b37be8d03140187, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  player: {fileID: 919132148949538990}
   characterController: {fileID: 919132148949538989}
-  animator: {fileID: 0}
+  gravity: -9.8
+  groundedGravity: -0.05
   currentMovementInput: {x: 0, y: 0}
   currentMovement: {x: 0, y: 0, z: 0}
   currentRunMovement: {x: 0, y: 0, z: 0}
   isMovementPressed: 0
-  isRunPressed: 0
   rotationFactorPerFrame: 15
+  isRunPressed: 0
   runMultiplier: 3
+  isJumpPressed: 0
+  initialJumpVelocity: 0
+  maxJumpHeight: 4
+  maxJumpTime: 0.75
+  isJumping: 0
+--- !u!114 &919132148949538992
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 919132148949538988}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6abfa9649c506fa44900fd3204f96096, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  player: {fileID: 919132148949538990}
+  animator: {fileID: 5866666021041657964}
 --- !u!4 &947290645123085980
 Transform:
   m_ObjectHideFlags: 0
