@@ -9,6 +9,8 @@ public class PlayerAnimation : MonoBehaviour
 
     int isWalkingHash;
     int isRunningHash;
+    int isJumpingHash;
+    int jumpCountHash;
 
     private void Awake()
     {
@@ -16,6 +18,8 @@ public class PlayerAnimation : MonoBehaviour
 
         isWalkingHash = Animator.StringToHash("isWalking");
         isRunningHash = Animator.StringToHash("isRunning");
+        isJumpingHash = Animator.StringToHash("isJumping");
+        jumpCountHash = Animator.StringToHash("jumpCount");
     }
 
     private void handleAnimation()
@@ -38,6 +42,15 @@ public class PlayerAnimation : MonoBehaviour
         else if((!player.playerMovement.isMovementPressed || !player.playerMovement.isRunPressed) && isRunning){
             animator.SetBool(isRunningHash, false);
         }
+
+    }
+
+    public void handleJumpAnimation(bool isJumping){
+        animator.SetBool(isJumpingHash, isJumping);
+    }
+
+    public void handleJumpCountAnimation(int count){
+        animator.SetInteger(jumpCountHash, count);
     }
 
     private void Update()

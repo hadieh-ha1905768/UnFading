@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -13,24 +14,37 @@ public class PlayerMovement : MonoBehaviour
     //gravity variables
     [SerializeField] internal float gravity = -9.8f;
     [SerializeField] internal float groundedGravity = -0.05f;
+    float secondGravity;
+    float thirdGravity;
+    float initialJumpVelocity;
+    float secondInitialJumpVelocity;
+    float thirdInitialJumpVelocity;
 
     //movement variables
-    [SerializeField] internal Vector2 currentMovementInput;
-    [SerializeField] internal Vector3 currentMovement;
-    [SerializeField] internal Vector3 currentRunMovement;
-    [SerializeField] internal bool isMovementPressed;
-    [SerializeField] internal float rotationFactorPerFrame = 15.0f;
+    Vector2 currentMovementInput;
+    Vector3 currentMovement;
+    Vector3 currentRunMovement;
+    Vector3 appliedMovement;
+    internal bool isMovementPressed;
+    float rotationFactorPerFrame = 15.0f;
 
     //running variables
-    [SerializeField] internal bool isRunPressed;
+    internal bool isRunPressed;
     [SerializeField] internal float runMultiplier = 3.0f;
 
     //jumping variables
-    [SerializeField] internal bool isJumpPressed = false;
-    [SerializeField] internal float initialJumpVelocity;
+    bool isJumpPressed = false;
+    bool isJumping = false;
     [SerializeField] internal float maxJumpHeight = 2f;
     [SerializeField] internal float maxJumpTime = 0.75f;
-    [SerializeField] internal bool isJumping = false;
+    [SerializeField] internal int jumpCount = 0;
+    Dictionary<int, float> initialJumpVelocities = new Dictionary<int, float>();
+    Dictionary<int, float> jumpGravities = new Dictionary<int, float>();
+    Coroutine currentJumpResetRoutine = null;
+
+    //animation flags
+    bool isJumpAnimating = false;
+
 
     private void Awake()
     {
@@ -48,10 +62,25 @@ public class PlayerMovement : MonoBehaviour
         setupJumpVariables();
     }
 
-    private void setupJumpVariables(){
+    private void setupJumpVariables()
+    {
         float timeToApex = maxJumpTime / 2.0f;
-        gravity = (-2 * maxJumpHeight)/Mathf.Pow(timeToApex, 2);
+
+        gravity = (-2 * maxJumpHeight) / Mathf.Pow(timeToApex, 2);
         initialJumpVelocity = (2 * maxJumpHeight) / timeToApex;
+        float secondGravity = (-2 * maxJumpHeight + 2) / Mathf.Pow(timeToApex * 1.25f, 2);
+        float secondInitialJumpVelocity = (2 * maxJumpHeight + 2) / (timeToApex * 1.25f);
+        float thirdGravity = (-2 * maxJumpHeight + 4) / Mathf.Pow(timeToApex * 1.5f, 2);
+        float thirdInitialJumpVelocity = (2 * maxJumpHeight + 4) / (timeToApex * 1.5f);
+
+        initialJumpVelocities.Add(1, initialJumpVelocity);
+        initialJumpVelocities.Add(2, secondInitialJumpVelocity);
+        initialJumpVelocities.Add(3, thirdInitialJumpVelocity);
+
+        jumpGravities.Add(0, gravity);
+        jumpGravities.Add(1, gravity);
+        jumpGravities.Add(2, secondGravity);
+        jumpGravities.Add(3, thirdGravity);
     }
 
     private void onMovementInput(InputAction.CallbackContext context)
@@ -69,7 +98,8 @@ public class PlayerMovement : MonoBehaviour
         isRunPressed = context.ReadValueAsButton();
     }
 
-    private void onJump(InputAction.CallbackContext context){
+    private void onJump(InputAction.CallbackContext context)
+    {
         isJumpPressed = context.ReadValueAsButton();
     }
 
@@ -78,12 +108,17 @@ public class PlayerMovement : MonoBehaviour
         handleRotation();
         if (isRunPressed)
         {
-            characterController.Move(currentRunMovement * Time.deltaTime);
+            appliedMovement.x = currentRunMovement.x;
+            appliedMovement.z = currentRunMovement.z;
         }
         else
         {
-            characterController.Move(currentMovement * Time.deltaTime);
+            appliedMovement.x = currentMovement.x;
+            appliedMovement.z = currentMovement.z;
         }
+
+        characterController.Move(appliedMovement * Time.deltaTime);
+
         handleGravity();
         handleJump();
     }
@@ -111,35 +146,58 @@ public class PlayerMovement : MonoBehaviour
 
         if (characterController.isGrounded)
         {
+            if (isJumpAnimating)
+            {
+                player.playerAnimation.handleJumpAnimation(false);
+                isJumpAnimating = false;
+                currentJumpResetRoutine = StartCoroutine(jumpResetRoutine());
+                if(jumpCount == 3){
+                    jumpCount = 0;
+                    player.playerAnimation.handleJumpCountAnimation(jumpCount);
+                }
+            }
             currentMovement.y = groundedGravity;
-            currentRunMovement.y = groundedGravity;
+            appliedMovement.y = groundedGravity;
         }
-        else if(isFalling){
+        else if (isFalling)
+        {
             float prevYVelocity = currentMovement.y;
-            float newYVelocity = currentMovement.y + (gravity * fallMultiplier * Time.deltaTime);
-            float nextYVelocity = Mathf.Max((prevYVelocity + newYVelocity) * 0.5f, -20.0f);
-            currentMovement.y = nextYVelocity;
-            currentRunMovement.y = nextYVelocity;
+            currentMovement.y = currentMovement.y + (jumpGravities[jumpCount] * fallMultiplier * Time.deltaTime);
+            appliedMovement.y = Mathf.Max((prevYVelocity + currentMovement.y) * 0.5f, -20.0f);
         }
         else
         {
             float prevYVelocity = currentMovement.y;
-            float newYVelocity = currentMovement.y + (gravity * Time.deltaTime);
-            float nextYVelocity = (prevYVelocity + newYVelocity) * 0.5f;
-            currentMovement.y = nextYVelocity;
-            currentRunMovement.y = nextYVelocity;
+            currentMovement.y = currentMovement.y + (jumpGravities[jumpCount] * Time.deltaTime);
+            appliedMovement.y = (prevYVelocity + currentMovement.y) * 0.5f;
         }
     }
 
-    private void handleJump(){
-        if(!isJumping && characterController.isGrounded && isJumpPressed){
+    private void handleJump()
+    {
+        if (!isJumping && characterController.isGrounded && isJumpPressed)
+        {
+            if (jumpCount < 3 && currentJumpResetRoutine != null)
+            {
+                StopCoroutine(currentJumpResetRoutine);
+            }
+            player.playerAnimation.handleJumpAnimation(true);
+            isJumpAnimating = true;
             isJumping = true;
-            currentMovement.y = initialJumpVelocity * 0.5f;
-            currentRunMovement.y = initialJumpVelocity * 0.5f;
+            jumpCount += 1;
+            player.playerAnimation.handleJumpCountAnimation(jumpCount);
+            currentMovement.y = initialJumpVelocities[jumpCount];
+            appliedMovement.y = initialJumpVelocities[jumpCount];
         }
-        else if(isJumping && characterController.isGrounded && !isJumpPressed){
+        else if (isJumping && characterController.isGrounded && !isJumpPressed)
+        {
             isJumping = false;
         }
+    }
+
+    private  IEnumerator jumpResetRoutine(){
+        yield return new WaitForSeconds(0.5f);
+        jumpCount = 0;
     }
 
     private void OnEnable()
